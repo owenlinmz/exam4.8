@@ -1,0 +1,168 @@
+<%inherit file="/base.html"/>
+
+<%block name="content">
+<div class="home-page" id="app">
+    <div class="select">
+        <i-input v-model="ip_list" placeholder="请输入IP (使用逗号分隔)" style="width: 300px"></i-input>
+        <i-button type="primary" @click="search_host" style="margin:0 10px">查询主机</i-button>
+        <i-button type="primary" @click="modal1 = true">添加主机</i-button>
+        <Modal
+                v-model="modal1"
+                title="添加主机"
+                @on-ok="add_host"
+                @on-cancel="cancel">
+            <i-select label="选择业务" v-model="bizModel" style="width:200px">
+                <i-option v-for="item in bk_biz_id" :value="item.bk_biz_id"
+                          :key="item.bk_biz_name">{{ item.bk_biz_name }}</i-option>
+            </i-select>
+            <i-select label="选择主机" v-model="hostModel" style="width:200px">
+                <i-option v-for="item in host" :value="item.bk_host_innerip"
+                          :key="item.bk_host_innerip">{{ item.bk_host_innerip }}</i-option>
+            </i-select>
+        </Modal>
+
+        <Modal v-model="modal2" fullscreen title="性能数据">
+            <div id="load5"
+                 style="height:250px; margin-top: 50px; width: 80%; margin-left: 10%"></div>
+        </Modal>
+    </div>
+
+
+    <div class="host_list">
+        <Card style="width: 100%;">
+            <p slot="title">
+                <Icon type="ios-film-outline"></Icon>
+                主机列表
+            </p>
+            <i-table stripe height="300" width="100%" :columns="columns" :data="hosts"></i-table>
+        </Card>
+    </div>
+</div>
+</%block>
+
+<script>
+    Vue.prototype.$http = axios;
+    let vm = new Vue({
+        el: "#app",
+        data: {
+            modal1: false,
+            modal2: false,
+            bk_biz_id: [],
+            bizModel: '',
+            host: [],
+            hostModel: '',
+            columns: [
+                {
+                    title: '主机IP',
+                    key: 'bk_host_innerip'
+                },
+                {
+                    title: '主机名',
+                    key: 'bk_host_name'
+                },
+                {
+                    title: '所属业务',
+                    key: 'bk_biz_name'
+                },
+                {
+                    title: '云区域',
+                    key: 'bk_inst_name'
+                },
+                {
+                    title: '操作系统类型',
+                    key: 'bk_os_name'
+                },
+                {
+                    title: '操作',
+                    key: 'action',
+                    width: 300,
+                    align: 'center',
+                    render: (h, params) => {
+                        return h('div', [
+                            h('Button', {
+                                props: {
+                                    type: 'primary',
+                                    size: 'small'
+                                },
+                                style: {
+                                    marginRight: '10px'
+                                },
+                                on: {
+                                    click: () => {
+                                        vm.show_pfm(params.row)
+                                    }
+                                }
+                            }, '查询性能'),
+                            h('Button', {
+                                props: {
+                                    type: 'error',
+                                    size: 'small'
+                                },
+                                on: {
+                                    click: () => {
+                                        vm.delete_host(params.row)
+                                    }
+                                }
+                            }, '删除')
+                        ]);
+                    }
+                }
+            ],
+            hosts: [],
+            ip_list: '',
+            host_pfm: ''
+        },
+        methods: {
+            get_biz: function () {
+                let url = site_url + 'get_biz/';
+                this.$http.get(url).then(response => {
+                    this.bk_biz_id = response.data.data;
+                }).catch(error => {
+                    console.log(error)
+                });
+            },
+            search_host: function () {
+                this.real_hosts = [];
+                let url = site_url + 'search_host/';
+                let params = {
+                    bk_host_innerip__in: this.ip_list,
+                    bk_biz_id: this.bizModel
+                };
+                this.$http.post(url, params).then(response => {
+                    this.hosts = response.data.data;
+                }).catch(error => {
+                        console.log(error)
+                    }
+                );
+            },
+            add_host: function () {
+
+            },
+            cancel() {
+                this.$Message.info('cancel');
+            },
+        },
+        mounted() {
+            /*   this.get_biz();
+               this.search_host();*/
+        },
+        watch: {
+            /*  bizModel() {
+                  this.list_host();
+              },*/
+        }
+
+    })
+</script>
+
+<style>
+    .select {
+        margin-left: 20%;
+        margin-top: 20px;
+        width: 60%;
+    }
+
+    .host_list {
+        margin-top: 50px;
+    }
+</style>
