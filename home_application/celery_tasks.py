@@ -19,7 +19,7 @@ from django.http import JsonResponse
 from blueking.component.shortcuts import get_client_by_user
 from common.log import logger
 from home_application.common_esb import fast_execute_script_esb, get_job_instance_log_esb, execute_job_esb
-from home_application.models import HostInfo, HostLoad5, HostMem
+from home_application.models import HostInfo, HostLoad5, HostMem, HostDisk
 
 
 @task()
@@ -235,4 +235,76 @@ def get_mem():
                                            check_time=datetime.datetime.strptime(check_time, "%Y-%m-%d %H:%M:%S"),
                                            bk_host_innerip=host_info)
             except KeyError:
-                logger.error(u"找不到负载数据")
+                logger.error(u"找不到内存数据")
+
+
+@periodic_task(run_every=crontab(minute='*/1', hour='*', day_of_week='*'))
+def get_disk():
+    host_info_list = HostInfo.objects.filter(is_delete=False)
+    ip_list = []
+    if not host_info_list:
+        return
+    else:
+        username = host_info_list[0].last_user
+        bk_biz_id = host_info_list[0].bk_biz_id
+
+    for host_info in host_info_list:
+        ip_list.append({
+            'ip': host_info.bk_host_innerip,
+            'bk_cloud_id': host_info.bk_cloud_id
+        })
+
+    client = get_client_by_user(username)
+    data = {
+        'bk_biz_id': bk_biz_id,
+        "bk_job_id": 1,
+        "steps": [
+            {
+                "account": "root",
+                "pause": 0,
+                "is_param_sensitive": 0,
+                "creator": "admin",
+                "script_timeout": 1000,
+                "last_modify_user": "admin",
+                "block_order": 1,
+                "name": "查看磁盘使用情况",
+                "script_content": "#!/bin/bash\n\n# 查看磁盘使用情况\n\ndf -h",
+                "block_name": "查看磁盘使用情况",
+                "create_time": "2019-04-08 10:10:13 +0800",
+                "last_modify_time": "2019-04-08 10:10:58 +0800",
+                "ip_list": ip_list,
+                "step_id": 1,
+                "script_id": 7,
+                "script_param": "",
+                "type": 1,
+                "order": 1,
+                "script_type": 1
+            }
+        ]
+    }
+    res = execute_job_esb(client, username, data)
+    time.sleep(5)
+    if res['data']:
+        params = {'bk_biz_id': data['bk_biz_id'], 'job_instance_id': res['data']['job_instance_id']}
+        res = get_job_instance_log_esb(client, 'admin', params)
+
+        for i in range(5):
+            if res['data'][0]['status'] != 3:
+                time.sleep(2)
+                res = get_job_instance_log_esb(client, 'admin', params)
+            else:
+                break
+
+        if res['data'][0]['status'] == 3:
+            # 处理性能数据
+            try:
+                for result in res['data'][0]['step_results'][0]['ip_logs']:
+                    disk = result['log_content'].split('\n')
+                    ip = result['ip']
+                    check_time = result['start_time'].split(' +')[0]
+                    host_info = HostInfo.objects.get(bk_host_innerip=ip)
+                    HostDisk.objects.create(disk=json.dumps(disk),
+                                            check_time=datetime.datetime.strptime(check_time, "%Y-%m-%d %H:%M:%S"),
+                                            bk_host_innerip=host_info)
+            except KeyError:
+                logger.error(u"找不到磁盘数据")

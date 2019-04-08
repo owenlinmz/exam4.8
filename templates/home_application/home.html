@@ -6,7 +6,7 @@
         <i-input v-model="ip_list" placeholder="请输入IP (使用逗号分隔)" style="width: 300px"></i-input>
         <i-button type="primary" @click="search_host" style="margin:0 10px">查询主机</i-button>
         <i-button type="primary" @click="modal1 = true">添加主机</i-button>
-        <i-button type="primary" @click="get_load5">load5</i-button>
+{#        <i-button type="primary" @click="get_load5">load5</i-button>#}
         <Modal
                 v-model="modal1"
                 title="添加主机"
@@ -29,6 +29,9 @@
             <div class="charts-wrapper">
                 <div id="pie" style="height:400px;padding:10px;width: 900px;"></div>
             </div>
+
+            <i-table stripe height="300" width="100%" :columns="disk_table" :data="disks"></i-table>
+
         </Modal>
 
         <Modal
@@ -77,6 +80,13 @@
             bizModel: '',
             host: [],
             hostModel: '',
+            disks: [],
+            disk_table: [
+                {
+                    title: '磁盘使用情况',
+                    key: 'content'
+                }
+            ],
             columns: [
                 {
                     title: '主机IP',
@@ -240,7 +250,6 @@
                 })
             },
             generate_graph(pfm_data) {
-                console.log(pfm_data)
                 let myChart = echarts.init(document.getElementById('load5'));
                 let legendData = [];
                 // 曲线名,mem,cpu,disk
@@ -284,6 +293,7 @@
                 this.$http.get(url).then(response => {
                     this.load5_data = response.data.load5;
                     this.memData = response.data.mem;
+                    this.disks = response.data.disk;
                     this.generate_graph(this.load5_data);
                     this.initPieChart()
                 }).catch(error => {

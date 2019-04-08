@@ -18,7 +18,7 @@ from conf.default import APP_ID, APP_TOKEN, BK_PAAS_HOST
 
 from home_application.common_esb import get_job_instance_log_esb, fast_execute_script_esb, search_host_esb, \
     search_set_esb, search_business_esb, fast_push_file_esb, execute_job_esb
-from home_application.models import HostInfo, HostLoad5, HostMem
+from home_application.models import HostInfo, HostLoad5, HostMem, HostDisk
 
 
 def home(request):
@@ -181,7 +181,15 @@ def display_performance(request):
             {'name': u'空余内存', 'value': mem.free_mem},
         ]
     }
-    return render_json({'load5': load5_result, 'mem': mem_data}, )
+
+    disk = HostDisk.objects.filter(bk_host_innerip=ip).last()
+    disk_data = json.loads(disk.disk)
+
+    real_disk_data = []
+    for item in disk_data:
+        real_disk_data.append({'content': item})
+
+    return render_json({'load5': load5_result, 'mem': mem_data, 'disk': real_disk_data})
 
 
 @csrf_exempt
@@ -213,14 +221,14 @@ def get_load5(request):
                 "script_timeout": 1000,
                 "last_modify_user": "admin",
                 "block_order": 1,
-                "name": "查看内存状态",
-                "script_content": "#!/bin/bash\n\n# 查看内存状态\n\nfree -m",
-                "block_name": "查看内存状态",
-                "create_time": "2019-04-08 10:08:41 +0800",
-                "last_modify_time": "2019-04-08 10:08:43 +0800",
+                "name": "查看磁盘使用情况",
+                "script_content": "#!/bin/bash\n\n# 查看磁盘使用情况\n\ndf -h",
+                "block_name": "查看磁盘使用情况",
+                "create_time": "2019-04-08 10:10:13 +0800",
+                "last_modify_time": "2019-04-08 10:10:58 +0800",
                 "ip_list": ip_list,
                 "step_id": 1,
-                "script_id": 4,
+                "script_id": 7,
                 "script_param": "",
                 "type": 1,
                 "order": 1,
@@ -245,20 +253,15 @@ def get_load5(request):
             # 处理性能数据
             try:
                 for result in res['data'][0]['step_results'][0]['ip_logs']:
-                    mem = result['log_content'].split('\n')[1].split(' ')
-                    real_mem = []
-                    for item in mem:
-                        if item:
-                            real_mem.append(item)
+                    disk = result['log_content'].split('\n')
 
                     ip = result['ip']
                     check_time = result['start_time'].split(' +')[0]
                     host_info = HostInfo.objects.get(bk_host_innerip=ip)
-                    HostMem.objects.create(used_mem=real_mem[2],
-                                           free_mem=real_mem[3],
-                                           check_time=datetime.datetime.strptime(check_time, "%Y-%m-%d %H:%M:%S"),
-                                           bk_host_innerip=host_info)
-                    logger.info(u'写入一条负载数据')
+                    HostDisk.objects.create(disk=json.dumps(disk),
+                                            check_time=datetime.datetime.strptime(check_time, "%Y-%m-%d %H:%M:%S"),
+                                            bk_host_innerip=host_info)
+                    logger.info(u'写入一条磁盘数据')
             except KeyError:
                 logger.error(u"找不到负载数据")
 
