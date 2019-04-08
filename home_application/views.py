@@ -170,7 +170,7 @@ def display_performance(request):
         }
 
     ip = request.GET.get('ip')
-    load5 = HostLoad5.objects.filter(bk_host_innerip=ip)
+    load5 = HostLoad5.objects.filter(bk_host_innerip=ip)[60]
     load5_result = generate_load5(load5)
 
     mem = HostMem.objects.filter(bk_host_innerip=ip).last()
