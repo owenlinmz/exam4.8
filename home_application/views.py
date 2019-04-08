@@ -182,7 +182,7 @@ def display_performance(request):
         ]
     }
 
-    disk = HostDisk.objects.filter(bk_host_innerip=ip).last()
+    disk = HostDisk.objects.filter(bk_host_innerip=ip).first()
     disk_data = json.loads(disk.disk)
 
     real_disk_data = []
