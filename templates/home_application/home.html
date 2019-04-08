@@ -25,6 +25,10 @@
         <Modal v-model="modal2" fullscreen title="性能数据">
             <div id="load5"
                  style="height:250px; margin-top: 50px; width: 80%; margin-left: 10%"></div>
+
+            <div class="charts-wrapper">
+                <div id="pie" style="height:400px;padding:10px;width: 900px;"></div>
+            </div>
         </Modal>
 
         <Modal
@@ -64,6 +68,7 @@
     let vm = new Vue({
         el: "#app",
         data: {
+            memData: {},
             desc: '',
             modal1: false,
             modal2: false,
@@ -191,6 +196,7 @@
             show_pfm: function (data) {
                 this.modal2 = true;
                 this.display_performance(data.bk_host_innerip)
+
             },
             show_desc: function (data) {
                 this.bizModel = data.bk_biz_id;
@@ -277,11 +283,19 @@
                 let url = site_url + 'display_performance/?ip=' + ip;
                 this.$http.get(url).then(response => {
                     this.load5_data = response.data.load5;
-                    this.generate_graph(this.load5_data)
+                    this.memData = response.data.mem;
+                    this.generate_graph(this.load5_data);
+                    this.initPieChart()
                 }).catch(error => {
                         console.log(error)
                     }
                 );
+            },
+            initPieChart() {
+                createPieChart({
+                    selector: 'pie', // 图表容器
+                    data: this.memData, // 图表数据
+                })
             }
         },
         mounted() {

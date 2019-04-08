@@ -76,29 +76,12 @@ def search_host_esb(client, username, bk_biz_id=None):
 
 
 def execute_job_esb(client, username, data):
-    bk_biz_id = int(data['bk_biz_id'])
-    ip_list = data['ip_list']
-    for ip in ip_list:
-        ip['bk_cloud_id'] = int(ip['bk_cloud_id'])
     params = {
         "bk_app_code": client.app_code,
         "bk_app_secret": client.app_secret,
-        "bk_username": username,
-        "bk_biz_id": bk_biz_id,
-        "bk_job_id": 1,
-        "global_vars": [
-            {
-                "step_ids": [
-                    1
-                ],
-                "description": "",
-                "type": 2,
-                "id": 1,
-                "name": "id-201934122211263",
-                "ip_list": ip_list
-            }
-        ]
+        "bk_username": username
     }
+    params.update(data)
     res = client.job.execute_job(params)
     if res['result']:
         return {'data': res['data']}
@@ -141,7 +124,8 @@ def get_job_instance_log_esb(client, username, data):
     return {'data': []}
 
 
-def fast_push_file_esb(client, biz_id, file_target_path, file_source, target_ip_list, file_source_ip_list, username='admin'):
+def fast_push_file_esb(client, biz_id, file_target_path, file_source, target_ip_list, file_source_ip_list,
+                       username='admin'):
     """
     快速分发文件
     """
