@@ -30,16 +30,18 @@
         <Modal
                 v-model="modal3"
                 title="修改"
-                @on-ok="add_host"
+                @on-ok="edit_desc"
                 @on-cancel="cancel">
-            <i-select label="选择业务" v-model="bizModel" style="width:200px">
+            <i-select label="选择业务" v-model="bizModel" disabled style="width:200px">
                 <i-option v-for="item in bk_biz_id" :value="item.bk_biz_id"
                           :key="item.bk_biz_name">{{ item.bk_biz_name }}</i-option>
             </i-select>
-            <i-select label="选择主机" v-model="hostModel" style="width:200px">
+            <i-select label="选择主机" v-model="hostModel" disabled style="width:200px">
                 <i-option v-for="item in host" :value="item.bk_host_innerip"
                           :key="item.bk_host_innerip">{{ item.bk_host_innerip }}</i-option>
             </i-select>
+
+            <i-input label="备注" v-model="desc" placeholder="输入备注" style="width: 300px; margin-top: 20px"></i-input>
         </Modal>
 
     </div>
@@ -62,6 +64,7 @@
     let vm = new Vue({
         el: "#app",
         data: {
+            desc: '',
             modal1: false,
             modal2: false,
             modal3: false,
@@ -190,8 +193,21 @@
                 this.display_performance(data.bk_host_innerip)
             },
             show_desc: function (data) {
+                this.bizModel = data.bk_biz_id;
+                this.hostModel = data.bk_host_innerip;
                 this.modal3 = true;
-
+                this.desc = data.desc
+            },
+            edit_desc: function () {
+                let url = site_url + 'edit_desc/';
+                params = {
+                    ip: this.hostModel,
+                    desc: this.desc
+                };
+                this.$http.post(url, params).then(response => {
+                    alert(response.data.data);
+                    this.search_host()
+                })
             },
             delete_host: function (data) {
                 let url = site_url + 'delete_host/';

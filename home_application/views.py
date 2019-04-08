@@ -137,6 +137,15 @@ def delete_host(request):
     return render_json({'data': u'删除成功'})
 
 
+@csrf_exempt
+def edit_desc(request):
+    params = json.loads(request.body)
+    ip = params['ip']
+    desc = params['desc']
+    HostInfo.objects.filter(bk_host_innerip=ip).update(desc=desc)
+    return render_json({'data': u'修改成功'})
+
+
 # @csrf_exempt
 # def display_performance(request):
 #     def generate_data(pfm_list):
