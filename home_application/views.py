@@ -186,10 +186,28 @@ def display_performance(request):
     disk_data = json.loads(disk.disk)
 
     real_disk_data = []
+    disk_data.pop(0)
+    disk_data.pop()
     for item in disk_data:
-        real_disk_data.append({'content': item})
+        new_list = item.split(' ')
+        real_list = []
+        for data in new_list:
+            if data:
+                real_list.append(data)
+        real_disk_data.append(real_list)
 
-    return render_json({'load5': load5_result, 'mem': mem_data, 'disk': real_disk_data})
+    return_disk_data = []
+    for item in real_disk_data:
+        return_disk_data.append({
+            'filesystem': item[0],
+            'size': item[1],
+            'used': item[2],
+            'avail': item[3],
+            'use': item[4],
+            'mounted on': item[5]
+        })
+
+    return render_json({'load5': load5_result, 'mem': mem_data, 'disk': return_disk_data})
 
 
 @csrf_exempt
